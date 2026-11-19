@@ -7,11 +7,19 @@ const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || "xxracing_secret_key_2026";
 const COOKIE_NAME = "xxr_session";
 
+const ADMIN_MOBILE = "1122334455";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "@ADMIN00";
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// In-memory demo user store (replace with database like MongoDB for production)
-const users = {};
+// Pre-seeded Admin + registered user store
+const users = {
+  [ADMIN_MOBILE]: {
+    password: ADMIN_PASSWORD,
+    role: "admin"
+  }
+};
 
 function parseCookies(req) {
   const list = {};
@@ -27,9 +35,13 @@ function parseCookies(req) {
   return list;
 }
 
-function signToken(mobile) {
+function signToken(mobile, role) {
   const payload = Buffer.from(
-    JSON.stringify({ mobile: mobile, exp: Date.now() + 24 * 60 * 60 * 1000 })
+    JSON.stringify({
+      mobile: mobile,
+      role: role || "player",
+      exp: Date.now() + 24 * 60 * 60 * 1000
+    })
   ).toString("base64url");
 
   const sig = crypto
@@ -65,14 +77,20 @@ function verifySession(req) {
       return null;
     }
 
-    return data.mobile;
+    const isAdmin =
+      data.mobile === ADMIN_MOBILE || data.role === "admin";
+
+    return {
+      mobile: data.mobile,
+      role: isAdmin ? "admin" : "player"
+    };
   } catch (err) {
     return null;
   }
 }
 
-function setSessionCookie(res, mobile) {
-  const token = signToken(mobile);
+function setSessionCookie(res, mobile, role) {
+  const token = signToken(mobile, role);
   res.setHeader(
     "Set-Cookie",
     `${COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax`
@@ -86,10 +104,22 @@ function clearSessionCookie(res) {
   );
 }
 
+function requireAdmin(req, res, next) {
+  const session = verifySession(req);
+  if (!session) {
+    return res.status(401).json({ ok: false, message: "Login required." });
+  }
+  if (session.role !== "admin") {
+    return res.status(403).json({ ok: false, message: "Admin access only." });
+  }
+  req.sessionUser = session;
+  next();
+}
+
 // Root "/" -> Server checks login status
 app.get("/", (req, res) => {
-  const loggedInMobile = verifySession(req);
-  if (!loggedInMobile) {
+  const session = verifySession(req);
+  if (!session) {
     return res.redirect("/auth.html");
   }
   return res.sendFile(path.join(__dirname, "index.html"));
@@ -97,25 +127,30 @@ app.get("/", (req, res) => {
 
 // Direct "/index.html" -> Server checks login status
 app.get("/index.html", (req, res) => {
-  const loggedInMobile = verifySession(req);
-  if (!loggedInMobile) {
+  const session = verifySession(req);
+  if (!session) {
     return res.redirect("/auth.html");
   }
   return res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// "/auth.html" -> If already logged in, server can send index.html or show auth.html
+// "/auth.html"
 app.get("/auth.html", (req, res) => {
   return res.sendFile(path.join(__dirname, "auth.html"));
 });
 
 // API: Current user check
 app.get("/api/me", (req, res) => {
-  const mobile = verifySession(req);
-  if (!mobile) {
+  const session = verifySession(req);
+  if (!session) {
     return res.status(401).json({ loggedIn: false });
   }
-  return res.json({ loggedIn: true, mobile: mobile });
+  return res.json({
+    loggedIn: true,
+    mobile: session.mobile,
+    role: session.role,
+    isAdmin: session.role === "admin"
+  });
 });
 
 // API: Register
@@ -134,11 +169,16 @@ app.post("/api/register", (req, res) => {
     return res.status(400).json({ ok: false, message: "Create Password aur Confirm Password match nahi kar rahe hain." });
   }
 
-  users[mobile] = password;
+  const assignedRole = mobile === ADMIN_MOBILE ? "admin" : "player";
+  users[mobile] = {
+    password: password,
+    role: assignedRole
+  };
+
   return res.json({ ok: true, message: "Register successful! Ab Login karein." });
 });
 
-// API: Login
+// API: Login (supports Admin 1122334455 / @ADMIN00 and registered players)
 app.post("/api/login", (req, res) => {
   const mobile = String(req.body.mobile || "").trim();
   const password = String(req.body.password || "");
@@ -146,15 +186,39 @@ app.post("/api/login", (req, res) => {
   if (!/^[0-9]{10}$/.test(mobile)) {
     return res.status(400).json({ ok: false, message: "Valid 10-digit mobile number daalein." });
   }
+
+  // Dedicated Admin Access check
+  if (mobile === ADMIN_MOBILE) {
+    if (password !== ADMIN_PASSWORD) {
+      return res.status(401).json({ ok: false, message: "Galat Admin password!" });
+    }
+    users[ADMIN_MOBILE] = { password: ADMIN_PASSWORD, role: "admin" };
+    setSessionCookie(res, ADMIN_MOBILE, "admin");
+    return res.json({
+      ok: true,
+      redirect: "/index.html",
+      mobile: ADMIN_MOBILE,
+      role: "admin",
+      isAdmin: true
+    });
+  }
+
   if (!users[mobile]) {
     return res.status(401).json({ ok: false, message: "Ye mobile number registered nahi hai. Pehle Register karein." });
   }
-  if (users[mobile] !== password) {
+  if (users[mobile].password !== password) {
     return res.status(401).json({ ok: false, message: "Galat password! Forgot Password? try karein." });
   }
 
-  setSessionCookie(res, mobile);
-  return res.json({ ok: true, redirect: "/index.html", mobile: mobile });
+  const role = users[mobile].role || "player";
+  setSessionCookie(res, mobile, role);
+  return res.json({
+    ok: true,
+    redirect: "/index.html",
+    mobile: mobile,
+    role: role,
+    isAdmin: role === "admin"
+  });
 });
 
 // API: Reset Password (Forgot Password popup)
@@ -177,8 +241,27 @@ app.post("/api/reset-password", (req, res) => {
     return res.status(400).json({ ok: false, message: "Password aur Confirm Password match nahi kar rahe hain." });
   }
 
-  users[mobile] = newPassword;
+  const role = mobile === ADMIN_MOBILE ? "admin" : (users[mobile] ? users[mobile].role : "player");
+  users[mobile] = {
+    password: newPassword,
+    role: role
+  };
+
   return res.json({ ok: true, message: "Password reset ho gaya hai! Ab naye password se Login karein." });
+});
+
+// Protected Admin Routes
+app.get("/api/admin/users", requireAdmin, (req, res) => {
+  const list = Object.keys(users).map((mob) => ({
+    mobile: mob,
+    role: users[mob].role || "player"
+  }));
+  return res.json({
+    ok: true,
+    admin: req.sessionUser.mobile,
+    totalUsers: list.length,
+    users: list
+  });
 });
 
 // API: Logout
