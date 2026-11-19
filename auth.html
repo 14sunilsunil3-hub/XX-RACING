@@ -411,25 +411,7 @@
 
   <script>
     var mode = "login";
-    var users = {};
     var generatedOtp = "";
-
-    function loadSavedUsers() {
-      try {
-        var raw = localStorage.getItem("xxracing_users");
-        if (raw) {
-          users = JSON.parse(raw);
-        }
-      } catch (e) {}
-    }
-
-    function saveUsers() {
-      try {
-        localStorage.setItem("xxracing_users", JSON.stringify(users));
-      } catch (e) {}
-    }
-
-    loadSavedUsers();
 
     function switchMode(newMode) {
       mode = newMode;
@@ -524,30 +506,45 @@
         showModalError("Please enter a valid 10-digit mobile number.");
         return false;
       }
-
       if (!/^[0-9]{6}$/.test(otp)) {
         showModalError("Please enter a valid 6-digit OTP.");
         return false;
       }
-
       if (newPass.length < 6) {
         showModalError("Create a password kam se kam 6 characters ka hona chahiye.");
         return false;
       }
-
       if (newPass !== confirmPass) {
         showModalError("Create a password aur Confirm password match nahi kar rahe hain.");
         return false;
       }
 
-      users[mobile] = newPass;
-      saveUsers();
+      fetch("/api/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mobile: mobile,
+          otp: otp,
+          newPassword: newPass,
+          confirmPassword: confirmPass
+        })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) {
+            showModalError(data.message || "Reset failed.");
+            return;
+          }
+          closeForgotPopup();
+          switchMode("login");
+          document.getElementById("mobile-input").value = mobile;
+          document.getElementById("password-input").value = "";
+          showMsg(data.message);
+        })
+        .catch(function () {
+          showModalError("Server se connect nahi ho pa raha hai.");
+        });
 
-      closeForgotPopup();
-      switchMode("login");
-      document.getElementById("mobile-input").value = mobile;
-      document.getElementById("password-input").value = "";
-      showMsg("Password reset ho gaya hai! Ab " + mobile + " ke liye apne naye password se Login karein.");
       return false;
     }
 
@@ -564,36 +561,58 @@
           showMsg("Password kam se kam 6 characters ka hona chahiye.");
           return false;
         }
-
         if (pw !== cpw) {
           showMsg("Create Password aur Confirm Password match nahi kar rahe hain.");
           return false;
         }
 
-        users[mobile] = pw;
-        saveUsers();
-        switchMode("login");
-        document.getElementById("mobile-input").value = mobile;
-        document.getElementById("password-input").value = "";
-        showMsg("Register successful! Ab " + mobile + " se Login karein.");
+        fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mobile: mobile,
+            password: pw,
+            confirmPassword: cpw
+          })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data.ok) {
+              showMsg(data.message || "Register failed.");
+              return;
+            }
+            switchMode("login");
+            document.getElementById("mobile-input").value = mobile;
+            document.getElementById("password-input").value = "";
+            showMsg(data.message);
+          })
+          .catch(function () {
+            showMsg("Server se connect nahi ho pa raha hai.");
+          });
+
         return false;
       }
 
-      if (!users[mobile]) {
-        showMsg("Ye mobile number registered nahi hai. Pehle Register karein.");
-        return false;
-      }
+      fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mobile: mobile,
+          password: pw
+        })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) {
+            showMsg(data.message || "Login failed.");
+            return;
+          }
+          window.location.href = data.redirect || "/index.html";
+        })
+        .catch(function () {
+          showMsg("Server se connect nahi ho pa raha hai.");
+        });
 
-      if (users[mobile] !== pw) {
-        showMsg("Galat password! Agar bhool gaye hain toh Forgot Password? par click karein.");
-        return false;
-      }
-
-      try {
-        localStorage.setItem("xxracing_active_user", mobile);
-      } catch (err) {}
-
-      window.location.href = "index.html";
       return false;
     }
   </script>
