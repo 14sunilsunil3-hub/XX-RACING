@@ -180,6 +180,47 @@
       border: 1px solid rgba(192, 132, 252, 0.4);
     }
 
+    #admin-panel {
+      display: none;
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(15, 8, 30, 0.9);
+      border: 1px solid rgba(192, 132, 252, 0.45);
+    }
+
+    .admin-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .admin-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #f3e8ff;
+    }
+
+    .admin-btn {
+      background: rgba(147, 51, 234, 0.3);
+      border: 1px solid rgba(192, 132, 252, 0.45);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .admin-list {
+      font-size: 12px;
+      color: #d8b4fe;
+      line-height: 1.5;
+    }
+
     .msg-box {
       margin-top: 14px;
       padding: 11px 13px;
@@ -247,6 +288,14 @@
         <button type="button" class="btn btn-secondary" onclick="logoutUser()">Logout</button>
       </div>
 
+      <div id="admin-panel">
+        <div class="admin-head">
+          <span class="admin-title">Admin Control</span>
+          <button type="button" class="admin-btn" onclick="loadAdminUsers()">View Users</button>
+        </div>
+        <div id="admin-list" class="admin-list">Admin session active (1122334455).</div>
+      </div>
+
       <div id="msg-box" class="msg-box"></div>
     </div>
   </div>
@@ -264,12 +313,35 @@
       })
       .then(function (data) {
         if (data && data.loggedIn && data.mobile) {
-          document.getElementById("user-badge").textContent = "ID: " + data.mobile;
+          var roleLabel = data.isAdmin ? "ADMIN: " : "ID: ";
+          document.getElementById("user-badge").textContent = roleLabel + data.mobile;
+          if (data.isAdmin) {
+            document.getElementById("admin-panel").style.display = "block";
+          }
         }
       })
       .catch(function () {
         window.location.replace("/auth.html");
       });
+
+    function loadAdminUsers() {
+      fetch("/api/admin/users")
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (!data.ok) {
+            document.getElementById("admin-list").textContent = data.message || "Access denied.";
+            return;
+          }
+          var rows = data.users.map(function (u) {
+            return u.mobile + " (" + u.role + ")";
+          });
+          document.getElementById("admin-list").textContent =
+            "Total Users: " + data.totalUsers + " — " + rows.join(", ");
+        })
+        .catch(function () {
+          document.getElementById("admin-list").textContent = "Failed to load admin users.";
+        });
+    }
 
     function selectCar(name, speed, handling, engine) {
       selectedCarName = name;
