@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XXRACING — High Speed Racing Hub</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #32155c, #0c0616 75%);
+      color: #f5f3ff;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .card {
+      background: rgba(24, 13, 46, 0.9);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 22px 55px rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(12px);
+    }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .badge {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: #f3e8ff;
+      background: rgba(147, 51, 234, 0.28);
+      border: 1px solid rgba(192, 132, 252, 0.4);
+      padding: 6px 12px;
+      border-radius: 999px;
+    }
+
+    .status {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #c084fc;
+    }
+
+    h1 {
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #ffffff;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #c4b5fd;
+      margin-bottom: 24px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 26px;
+    }
+
+    .stat-box {
+      background: rgba(15, 8, 30, 0.8);
+      border: 1px solid rgba(168, 85, 247, 0.25);
+      border-radius: 12px;
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      display: block;
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: #a78bfa;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #a855f7, #6d28d9);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.15);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #e9d5ff;
+      border: 1px solid rgba(192, 132, 252, 0.4);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(168, 85, 247, 0.16);
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <div class="top-row">
+        <span class="badge">XXRACING</span>
+        <span class="status">LIVE TRACK</span>
+      </div>
+
+      <h1>XXRACING</h1>
+      <p class="subtitle">
+        Push the limits, master every corner, and dominate the leaderboard at full throttle.
+      </p>
+
+      <div class="stats">
+        <div class="stat-box">
+          <span class="stat-value">340 KM/H</span>
+          <span class="stat-label">TOP SPEED</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value">24</span>
+          <span class="stat-label">CIRCUITS</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value">60 FPS</span>
+          <span class="stat-label">SMOOTH ENGINE</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a href="#race" class="btn btn-primary">Start Race</a>
+        <a href="#garage" class="btn btn-secondary">Garage</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
